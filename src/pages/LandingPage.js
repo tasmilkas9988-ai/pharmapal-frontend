@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { Pill, Scan, Shield, Clock, Bell, AlertTriangle, Calendar, FileText, CheckSquare, Lock, Headphones } from "lucide-react";
 import Footer from "../components/Footer";
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
 const LandingPage = ({ setUser }) => {
   const navigate = useNavigate();
   const [showAuth, setShowAuth] = useState(false);
@@ -137,7 +139,7 @@ const LandingPage = ({ setUser }) => {
         }
 
         // Register directly - use relative path for proxy
-        const response = await axios.post(`/api/auth/register`, {
+        const response = await axios.post(`${BACKEND_URL}/auth/register`, {
           ...authData,
           language
         });
@@ -170,7 +172,7 @@ const LandingPage = ({ setUser }) => {
       
       const payload = { phone: authData.phone, password: authData.password };
 
-      const response = await axios.post(endpoint, payload);
+      const response = await axios.post(`${BACKEND_URL}${endpoint}`, payload);
       
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("user", JSON.stringify(response.data.user));
