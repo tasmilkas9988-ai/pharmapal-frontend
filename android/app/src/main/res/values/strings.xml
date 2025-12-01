@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PharmaPal</string>
+    <string name="title_activity_main">PharmaPal</string>
+    <string name="package_name">com.pharmapal.online</string>
+    <string name="custom_url_scheme">com.pharmapal.online</string>
+</resources>

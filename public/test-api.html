@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - PharmaPal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .med-card {
+            border: 2px solid #14b8a6;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: #f0fdfa;
+        }
+        .label {
+            font-weight: bold;
+            color: #0d9488;
+        }
+        button {
+            background: #14b8a6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .error {
+            color: red;
+            padding: 10px;
+            background: #fee;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>اختبار API المباشر</h1>
+        
+        <div>
+            <input type="email" id="email" placeholder="البريد الإلكتروني" value="hythamnsr@hotmail.com">
+            <input type="password" id="password" placeholder="كلمة المرور">
+            <button onclick="login()">تسجيل الدخول</button>
+        </div>
+        
+        <div id="result" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://medtracker-72.preview.emergentagent.com/api';
+        
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Login
+                const loginResponse = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, password})
+                });
+                
+                const loginData = await loginResponse.json();
+                
+                if (!loginData.token) {
+                    resultDiv.innerHTML = `<div class="error">فشل تسجيل الدخول: ${loginData.detail}</div>`;
+                    return;
+                }
+                
+                // Fetch medications
+                const medsResponse = await fetch(`${API_URL}/user-medications`, {
+                    headers: {
+                        'Authorization': `Bearer ${loginData.token}`
+                    }
+                });
+                
+                const medications = await medsResponse.json();
+                
+                // Display medications
+                let html = '<h2>الأدوية الخاصة بك:</h2>';
+                
+                if (medications.length === 0) {
+                    html += '<p>لا توجد أدوية</p>';
+                } else {
+                    medications.forEach((med, idx) => {
+                        html += `
+                            <div class="med-card">
+                                <h3>${idx + 1}. ${med.brand_name}</h3>
+                                <p><span class="label">حجم العبوة:</span> 
+                                    ${med.package_size ? `${med.package_size} ${med.unit_ar || 'وحدة'}` : 'غير محدد'}
+                                </p>
+                                <p><span class="label">التكرار:</span> ${med.frequency}</p>
+                                <p><span class="label">التركيز:</span> ${med.prescribed_dosage}</p>
+                                <details>
+                                    <summary>البيانات الكاملة</summary>
+                                    <pre>${JSON.stringify(med, null, 2)}</pre>
+                                </details>
+                            </div>
+                        `;
+                    });
+                }
+                
+                resultDiv.innerHTML = html;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">خطأ: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

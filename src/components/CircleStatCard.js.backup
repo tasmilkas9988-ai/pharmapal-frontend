@@ -1,0 +1,191 @@
+import React, { useState, useEffect } from 'react';
+
+/**
+ * CircleStatCard - SUPER ALIVE بطاقة إحصائية دائرية
+ * تصميم حي ومتحرك بشكل مستمر
+ */
+const CircleStatCard = ({ 
+  icon: Icon,
+  image,
+  title,
+  description,
+  gradient = "from-pink-400 to-orange-400",
+  iconBg = "bg-blue-600",
+  iconColor = "text-white",
+  onClick,
+  language = "ar"
+}) => {
+  const [isPressed, setIsPressed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [ripples, setRipples] = useState([]);
+  const [sparkles, setSparkles] = useState([]);
+
+  // Generate random sparkles on hover
+  useEffect(() => {
+    if (!isHovered) {
+      setSparkles([]);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const newSparkle = {
+        id: Date.now() + Math.random(),
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 3 + 1,
+        delay: Math.random() * 500
+      };
+      
+      setSparkles(prev => [...prev, newSparkle].slice(-8)); // Keep max 8 sparkles
+      
+      setTimeout(() => {
+        setSparkles(prev => prev.filter(s => s.id !== newSparkle.id));
+      }, 1500);
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [isHovered]);
+
+  const handleClick = (e) => {
+    if (!onClick) return;
+
+    // Create ripple effect
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const newRipple = {
+      x,
+      y,
+      id: Date.now()
+    };
+    
+    setRipples([...ripples, newRipple]);
+    
+    // Remove ripple after animation
+    setTimeout(() => {
+      setRipples(ripples => ripples.filter(r => r.id !== newRipple.id));
+    }, 600);
+
+    onClick();
+  };
+
+  return (
+    <div 
+      onClick={handleClick}
+      onMouseDown={() => setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsPressed(false);
+        setIsHovered(false);
+      }}
+      className={`
+        relative
+        flex flex-col items-center 
+        cursor-pointer 
+        transition-all duration-300
+        hover:scale-105
+        active:scale-95
+        ${isPressed ? 'scale-95' : ''}
+        group
+      `}
+    >
+      {/* Ripple Container */}
+      <div className="absolute inset-0 overflow-hidden rounded-full pointer-events-none">
+        {ripples.map(ripple => (
+          <span
+            key={ripple.id}
+            className="absolute bg-white/30 rounded-full animate-ripple"
+            style={{
+              left: ripple.x,
+              top: ripple.y,
+              width: 0,
+              height: 0,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Circular Card - Simple and Clean */}
+      <div className="relative">
+        {/* Subtle Glow on Hover */}
+        <div className={`
+          absolute -inset-2
+          rounded-full 
+          bg-gradient-to-br ${gradient}
+          opacity-0
+          group-hover:opacity-20
+          blur-xl
+          transition-opacity duration-300
+        `} />
+
+        {/* Inner Circle */}
+        <div className={`
+          relative
+          w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32
+          rounded-full 
+          ${iconBg}
+          flex items-center justify-center
+          shadow-lg
+          group-hover:shadow-xl
+          transition-all duration-300
+        `}>
+            {/* Icon */}
+            {Icon ? (
+              <Icon className={`
+                w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 
+                ${iconColor}
+                transition-transform duration-300
+                group-hover:scale-110
+              `} 
+              strokeWidth={2}
+              />
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {/* Title */}
+      <h3 className={`
+        mt-3
+        text-base sm:text-lg
+        font-bold
+        text-gray-800 dark:text-white
+        text-center
+        ${language === 'ar' ? 'font-arabic' : ''}
+      `}>
+        {title}
+      </h3>
+
+      {/* Description */}
+      {description && (
+        <p className={`
+          mt-1
+          text-xs sm:text-sm
+          text-gray-600 dark:text-gray-400
+          text-center
+          max-w-[140px]
+          transition-all duration-300
+          group-hover:text-gray-800 dark:group-hover:text-gray-200
+          ${language === 'ar' ? 'font-arabic' : ''}
+        `}>
+          {description}
+        </p>
+      )}
+
+      {/* Interactive Indicator */}
+      <div className={`
+        mt-2
+        w-8 h-1
+        rounded-full
+        bg-gradient-to-r ${gradient}
+        opacity-0
+        group-hover:opacity-100
+        transition-all duration-300
+      `} />
+    </div>
+  );
+};
+
+export default CircleStatCard;

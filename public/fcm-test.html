@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار FCM Token</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #0d9488;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #0d9488;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #0f766e;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #1e293b;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info { color: #3b82f6; }
+        .warning { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 اختبار FCM Push Notifications</h1>
+        
+        <p><strong>الخطوات:</strong></p>
+        <ol>
+            <li>اضغط "طلب أذونات الإشعارات"</li>
+            <li>وافق على طلب المتصفح</li>
+            <li>انتظر الحصول على Token</li>
+            <li>اضغط "تسجيل Token" لحفظه</li>
+            <li>اضغط "إرسال إشعار تجريبي"</li>
+        </ol>
+
+        <div style="margin: 20px 0;">
+            <button id="requestBtn" onclick="requestPermission()">1. طلب أذونات الإشعارات</button>
+            <button id="registerBtn" onclick="registerToken()" disabled>2. تسجيل Token في Backend</button>
+            <button id="testBtn" onclick="sendTestNotification()" disabled>3. إرسال إشعار تجريبي</button>
+        </div>
+
+        <div class="log" id="log">جاهز للبدء...</div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getMessaging, getToken, onMessage } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js';
+
+        // Firebase configuration - يجب أن تطابق Service Account
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzxOOifyQXjhHk6Kq3LAHNXv7mJ9Y31bs",
+            authDomain: "pharmapal-4d0b2.firebaseapp.com",
+            projectId: "pharmapal-4d0b2",
+            storageBucket: "pharmapal-4d0b2.firebasestorage.app",
+            messagingSenderId: "754886803994",
+            appId: "1:754886803994:web:2a0b61549f785d73de07a3",
+            measurementId: "G-86E86KNJDY"
+        };
+
+        // VAPID Key
+        const VAPID_KEY = 'BFoYdKOZQ3gKPel7VauTW5JKYJPwqt_XmzUSBtLRAqApUbhjq8A8gtScmwCMRsYaFhc1qiUgKRjMVK9qXudyTno';
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        let messaging;
+        let currentToken = null;
+
+        // Log function
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString('ar-SA');
+            const className = type;
+            logDiv.innerHTML += `\n<span class="${className}">[${timestamp}] ${message}</span>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        // Request permission
+        window.requestPermission = async function() {
+            try {
+                log('🔔 بدء طلب أذونات الإشعارات...', 'info');
+                
+                // Check support
+                if (!('Notification' in window)) {
+                    log('❌ المتصفح لا يدعم الإشعارات', 'error');
+                    return;
+                }
+
+                if (!('serviceWorker' in navigator)) {
+                    log('❌ المتصفح لا يدعم Service Workers', 'error');
+                    return;
+                }
+
+                log('✅ المتصفح يدعم الإشعارات', 'success');
+                
+                // Request permission
+                const permission = await Notification.requestPermission();
+                log(`📋 نتيجة الأذونات: ${permission}`, permission === 'granted' ? 'success' : 'error');
+                
+                if (permission !== 'granted') {
+                    log('❌ تم رفض الأذونات', 'error');
+                    return;
+                }
+
+                // Register service worker
+                log('📝 تسجيل Service Worker...', 'info');
+                const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+                await navigator.serviceWorker.ready;
+                log('✅ Service Worker مسجل', 'success');
+
+                // Initialize messaging
+                log('🔧 تهيئة Firebase Messaging...', 'info');
+                messaging = getMessaging(app);
+                log('✅ Firebase Messaging جاهز', 'success');
+
+                // Get token
+                log('🎫 الحصول على FCM Token...', 'info');
+                currentToken = await getToken(messaging, {
+                    vapidKey: VAPID_KEY,
+                    serviceWorkerRegistration: registration
+                });
+
+                if (currentToken) {
+                    log('✅ تم الحصول على Token!', 'success');
+                    log(`📱 Token: ${currentToken.substring(0, 50)}...`, 'success');
+                    log(`📏 الطول: ${currentToken.length} حرف`, 'info');
+                    log(`📋 Sender ID: 754886803994`, 'info');
+                    log(`📋 Project ID: pharmapal-4d0b2`, 'info');
+                    
+                    // Enable register button
+                    document.getElementById('registerBtn').disabled = false;
+                    document.getElementById('requestBtn').disabled = true;
+                    
+                    // Setup foreground message handler
+                    onMessage(messaging, (payload) => {
+                        log('📬 تم استلام إشعار!', 'success');
+                        log(`العنوان: ${payload.notification?.title}`, 'info');
+                        log(`المحتوى: ${payload.notification?.body}`, 'info');
+                    });
+                    
+                } else {
+                    log('❌ لم يتم الحصول على Token', 'error');
+                }
+
+            } catch (error) {
+                log(`❌ خطأ: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+
+        // Register token with backend
+        window.registerToken = async function() {
+            try {
+                if (!currentToken) {
+                    log('❌ لا يوجد Token للتسجيل', 'error');
+                    return;
+                }
+
+                log('📤 إرسال Token للـ Backend...', 'info');
+
+                // Get auth token from localStorage or prompt
+                let authToken = localStorage.getItem('token');
+                if (!authToken) {
+                    log('⚠️ غير مسجل دخول - سأحاول التسجيل كـ Guest', 'warning');
+                    // For testing, we'll send without auth
+                }
+
+                const API_URL = window.location.origin + '/api';
+                
+                const response = await fetch(`${API_URL}/fcm/register-token`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                    },
+                    body: JSON.stringify({
+                        token: currentToken,
+                        device_type: 'web'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    log('✅ تم تسجيل Token في Backend!', 'success');
+                    log(`Response: ${JSON.stringify(data)}`, 'info');
+                    
+                    // Enable test button
+                    document.getElementById('testBtn').disabled = false;
+                    document.getElementById('registerBtn').disabled = true;
+                } else {
+                    log(`❌ فشل التسجيل: ${data.detail || 'Unknown error'}`, 'error');
+                }
+
+            } catch (error) {
+                log(`❌ خطأ: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+
+        // Send test notification
+        window.sendTestNotification = async function() {
+            try {
+                log('📨 إرسال إشعار تجريبي...', 'info');
+
+                let authToken = localStorage.getItem('token');
+                if (!authToken) {
+                    log('❌ يجب تسجيل الدخول أولاً', 'error');
+                    return;
+                }
+
+                const API_URL = window.location.origin + '/api';
+                
+                const response = await fetch(`${API_URL}/fcm/test-notification`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        title: '🎉 اختبار ناجح!',
+                        body: 'الإشعارات تعمل بشكل صحيح الآن!'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    log('✅ تم إرسال الإشعار بنجاح!', 'success');
+                    log(`Response: ${JSON.stringify(data)}`, 'info');
+                } else {
+                    log(`❌ فشل الإرسال: ${data.detail || 'Unknown error'}`, 'error');
+                }
+
+            } catch (error) {
+                log(`❌ خطأ: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+
+        log('🚀 الصفحة جاهزة - ابدأ الاختبار!', 'success');
+    </script>
+</body>
+</html>

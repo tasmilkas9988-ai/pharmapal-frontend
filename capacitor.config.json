@@ -1,0 +1,27 @@
+{
+  "appId": "com.pharmapal.online",
+  "appName": "PharmaPal",
+  "webDir": "build",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon_config_sample",
+      "iconColor": "#0EA5E9",
+      "sound": "beep.wav"
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    },
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0EA5E9",
+      "showSpinner": true,
+      "androidSpinnerStyle": "small",
+      "iosSpinnerStyle": "small",
+      "spinnerColor": "#ffffff"
+    }
+  }
+}
