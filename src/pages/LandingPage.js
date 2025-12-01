@@ -99,99 +99,67 @@ const LandingPage = ({ setUser }) => {
   }, [shouldNavigate, navigate]);
 
   const handleAuth = async (type) => {
-    setIsAuthLoading(true);
-    try {
-      // Validate phone number format (05xxxxxxxx)
-      if (!authData.phone || authData.phone.trim() === "") {
-        toast.error(language === "ar" ? "الرجاء إدخال رقم الجوال" : "Please enter phone number");
-        setIsAuthLoading(false);
-        return;
-      }
+  setIsAuthLoading(true);
 
-      if (!authData.phone.match(/^05\d{8}$/)) {
-        toast.error(language === "ar" ? "رقم الجوال يجب أن يبدأ بـ 05 متبوعاً بـ 8 أرقام" : "Phone must start with 05 followed by 8 digits");
-        setIsAuthLoading(false);
-        return;
-      }
-
-      if (type === "register") {
-        // Validate registration fields
-        if (!authData.full_name || !authData.password) {
-          toast.error(language === "ar" ? "الرجاء إدخال جميع البيانات" : "Please fill all fields");
-          setIsAuthLoading(false);
-          return;
-        }
-
-        // Check password confirmation
-        if (authData.password !== authData.confirm_password) {
-          toast.error(language === "ar" ? "كلمتا المرور غير متطابقتين" : "Passwords do not match");
-          setIsAuthLoading(false);
-          return;
-        }
-
-        // Password strength check
-        if (authData.password.length < 6) {
-          toast.error(language === "ar" ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters");
-          setIsAuthLoading(false);
-          return;
-        }
-
-        // Register directly - use relative path for proxy
-        const response = await axios.post(`/api/auth/register`, {
-          ...authData,
-          language
-        });
-        
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("user", JSON.stringify(response.data.user));
-        localStorage.setItem("preferredLanguage", language);
-        setUser(response.data.user);
-        
-        toast.success(language === "ar" ? "تم التسجيل بنجاح! 🎉" : "Registration successful! 🎉");
-        
-        setShowAuth(false);
-        
-        // Use setTimeout with setShouldNavigate to ensure state synchronization
-        setTimeout(() => {
-          setShouldNavigate(true);
-        }, 100);
-        return;
-      }
-
-      // Login flow with phone number - use relative path for proxy
-      // Validate login password
-      if (!authData.password || authData.password.trim() === "") {
-        toast.error(language === "ar" ? "الرجاء إدخال كلمة المرور" : "Please enter password");
-        setIsAuthLoading(false);
-        return;
-      }
-      
-      const endpoint = "/api/auth/login";
-      
-      const payload = { phone: authData.phone, password: authData.password };
-
-      const response = await axios.post(endpoint, payload);
-      
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("user", JSON.stringify(response.data.user));
-      localStorage.setItem("preferredLanguage", language);
-      setUser(response.data.user);
-      
-      toast.success(language === "ar" ? "تم تسجيل الدخول بنجاح! ✅" : "Successfully logged in! ✅");
-      
-      setShowAuth(false);
-      
-      // Use setTimeout with setShouldNavigate to ensure state synchronization
-      setTimeout(() => {
-        setShouldNavigate(true);
-      }, 100);
-    } catch (error) {
-      console.error("Auth error:", error);
-      toast.error(error.response?.data?.detail || (language === "ar" ? "فشل تسجيل الدخول" : "Authentication failed"));
-    } finally {
+  try {
+    // Validate phone number format (05xxxxxxxx)
+    if (!authData.phone || authData.phone.trim() === "") {
+      toast.error(language === "ar" ? "الرجاء إدخال رقم الجوال" : "Please enter phone number");
       setIsAuthLoading(false);
+      return;
     }
-  };
+
+    if (!authData.phone.match(/^05\d{8}$/)) {
+      toast.error(
+        language === "ar"
+          ? "رقم الجوال يجب أن يبدأ بـ 05 متبوعاً بـ 8 أرقام"
+          : "Phone must start with 05 followed by 8 digits"
+      );
+      setIsAuthLoading(false);
+      return;
+    }
+
+    // Validate registration fields
+    if (type === "register") {
+      if (!authData.full_name || !authData.email || !authData.password) {
+        toast.error(language === "ar" ? "الرجاء إدخال جميع البيانات" : "Please fill all fields");
+        setIsAuthLoading(false);
+        return;
+      }
+    }
+
+    const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+    const endpoint =
+      type === "login"
+        ? `${BACKEND_URL}/api/auth/login`
+        : `${BACKEND_URL}/api/auth/register`;
+
+    const payload =
+      type === "login"
+        ? {
+            phone: authData.phone,
+            password: authData.password,
+          }
+        : {
+            full_name: authData.full_name,
+            email: authData.email,
+            phone: authData.phone,
+            password: authData.password,
+          };
+
+    const response = await axios.post(endpoint, payload);
+
+    toast.success(language === "ar" ? "تم تسجيل الدخول بنجاح!" : "Login successful");
+    setUser(response.data.user);
+
+    navigate("/home");
+  } catch (error) {
+    console.error(error);
+    toast.error(language === "ar" ? "فشل تسجيل الدخول" : "Login failed");
+  } finally {
+    setIsAuthLoading(false);
+  }
+};
 
   const handleInputChange = (field, value) => {
     try {
