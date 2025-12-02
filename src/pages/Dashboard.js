@@ -1959,7 +1959,7 @@ const Dashboard = ({ user, setUser }) => {
                   {/* Real Pharmacist Image */}
                   <div className="flex-shrink-0">
                     <img 
-                      src="/images/pharmacist-welcome.png"
+                      src="https://customer-assets.emergentagent.com/job_med-dashboard-fixes/artifacts/645npht4_file_0000000089e071f4ae03d7f671daff8a.png"
                       alt="Pharmacist"
                       className="w-80 h-auto rounded-3xl object-contain shadow-2xl"
                     />
